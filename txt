@@ -1,0 +1,560 @@
+/ exports.verifyEmail = async (req, res) => {
+//     const { userId, token } = req.params;
+//     console.log('Received userId:', userId); 
+//     console.log('Received token:', token);   
+    
+//     try {
+//         const decoded = verifyToken(token);
+//         console.log('Decoded token:', decoded); 
+
+//         if (decoded.id !== userId) {
+//             console.error('UserId mismatch: decoded userId:', decoded.id, 'param userId:', userId);
+//             return res.status(400).json({ message: 'Invalid token' });
+//         }
+
+//         const user = await User.findById(userId);
+//         console.log('User found:', user);  
+
+//         if (!user) {
+//             console.error('User not found for userId:', userId);
+//             return res.status(404).json({ message: 'User not found' });
+//         }
+
+//         if (user.isVerified) {
+//             console.log('User is already verified');
+//             return res.status(200).json({ message: 'Email is already verified' });
+//         }
+//         setPassword(req, res);
+        
+//     } catch (error) {
+       
+//         console.error('Error during email verification:', error);
+
+//         if (error.name === 'TokenExpiredError') {
+//             return res.status(400).json({ message: 'Token expired, Please Login Again' });
+//         }
+
+//         return res.status(500).json({ message: 'Error verifying email' });
+//     }
+// };
+// const setPassword = async (req, res) => {
+//     try {
+//         const {token} =req.params;
+//         console.log("Token:", token);
+
+//         if (!token) return res.status(403).json({ message: 'No token provided' });
+//         const decoded = verifyToken(token);
+//         const userId = decoded.id; 
+//         const { newPassword, confirmPassword } = req.body;
+//         if (!newPassword || !confirmPassword) {
+//             return res.status(400).json({ message: 'Both new password and confirm password are required' });
+//         }
+//         if (newPassword !== confirmPassword) {
+//             return res.status(400).json({ message: 'New password and confirm password do not match' });
+//         }
+//         const hashedPassword = await bcrypt.hash(newPassword, 10);
+//         console.log(userId)
+//         await User.findByIdAndUpdate(userId, { password: hashedPassword,isVerified:true});
+//         res.status(200).json({ message: 'Email is Verified and Password has been set successfully.Please Login' });
+//     } catch (err) {
+//         return res.status(400).json({ message: err.message });
+//     }
+// };
+
+/ const setRandomPassword = async (user, password) => {
+    //     try {
+    //         const hashedPassword = await bcrypt.hash(password, 10);
+    //         user.password = hashedPassword;
+    
+    //         await user.save();
+    
+    //         const verificationToken = generateToken(user._id, user.role_id);
+    //         const url = `${BASE_URL}/${user._id}/verify/${verificationToken}`;
+    
+    //         const emailContent = `
+    //         Verify Your Email Your password is:${password} Please verify your email by clicking the link below:
+    //             <a href="${url}">Verify Email</a>
+    //         `;
+    
+    //         const emailSent = await sendEmail(user.email, 'Verify your email', emailContent);
+    //         if (!emailSent) {
+    //             return { error: 'User created but email verification failed. Please try again.' }; 
+    //         }
+    
+    //         return { message: 'An email has been sent to set your new password.' }; 
+    //     } catch (error) {
+    //         console.error('Error setting password or sending email:', error);
+    //         return { error: 'Error setting password or sending email' }; `
+    //         `
+    //     }
+    // };
+
+
+    / exports.login = async (req, res) => {
+        //     const { email, password } = req.body;
+        //     if (!email || !password) {
+        //         return res.status(400).json({ message: 'Please provide email and password' });
+        //     }
+        
+        //     try {
+        //         const user = await User.findOne({ email });
+        //         if (!user) {
+        //             return res.status(400).json({ message: 'Invalid credentials' });
+        //         }
+        
+        //         if (!user.isVerified && !user.password) {
+        //             const result = await setRandomPassword(user, password); 
+        //             if (result.error) {
+        //                 return res.status(500).json({ message: result.error }); 
+        //             }
+        //             return res.status(200).json({ message: result.message }); 
+        //         }
+        //         if(!user.isVerified && user.password)
+        //         {
+        //             const verificationToken = generateToken(userId, user.role_id);
+        //             const url = `${BASE_URL}/${userId}/verify/${verificationToken}`;
+        //             const emailSent = await sendEmail(user.email, 'Verify your email', url);
+        //             if (!emailSent) {
+        //                 console.error('Failed to resend verification email to:', user.email);
+        //                 return res.status(500).json({ message: 'Verification email resend failed. Please try again.' });
+        //             }
+        
+        //             console.log('Resent verification email to:', user.email);
+        //             return res.status(400).json({ message: 'Token expired, a new verification email has been sent.' });
+        //         }
+        //         const isPasswordValid = await bcrypt.compare(password, user.password);
+        //         if (!isPasswordValid) {
+        //             return res.status(400).json({ message: 'Invalid credentials' });
+        //         }
+        
+        //         const token = generateToken(user._id, user.role_id);
+        //         user.token = token;
+        //         await user.save();
+        
+        //         return res.status(200).json({ 
+        //             message: 'Login successful', 
+        //             token: token 
+        //         });
+        //     } catch (err) {
+        //         console.error('Login error:', err);
+        //         return res.status(500).json({ message: 'Error logging in' });
+        //     }
+        // };  
+
+        else if (Project_name) {
+            const projectDetail = await Project.findOne({ Project_name });
+            if (!projectDetail) {
+                return res.status(404).json({ message: 'Project not found' });
+            }
+
+            result = await UserProject.aggregate([
+                {
+                    $lookup: {
+                        from: "projects",
+                        localField: "project_id",
+                        foreignField: "_id",
+                        as: "projectDetails"
+                    }
+                },
+                { $unwind: "$projectDetails" },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "user_id",
+                        foreignField: "_id",
+                        as: "userDetails"
+                    }
+                },
+                { $unwind: "$userDetails" },
+                {
+                    $match: { "projectDetails._id": projectDetail._id }
+                },
+                { $sort: constructSort(Order_By, Sort_By) },
+                {
+                    $project: {
+                        _id: 0,
+                        "projectDetails._id": 1,
+                        "projectDetails.Project_name": 1,
+                        "projectDetails.Project_description": 1,
+                        "projectDetails.duration": 1,
+                        "projectDetails.status": 1,
+                        "userDetails._id":1,
+                        "userDetails.name": 1,
+                        "userDetails.email": 1,
+                        "userDetails.isAdmin": 1,
+                        "userDetails.isVerified": 1
+                    }
+                }
+            ]);
+        }
+
+
+
+        exports.findData = async (req, res) => {
+            try {
+                const { user_id, name, Order_By, Sort_By } = req.query;
+        
+                const constructSort = (Order_By, Sort_By) => {
+                    const sortObject = {};
+                
+                    let orderByField;
+                    if (Order_By === 'name') {
+                        orderByField = "userDetails.name" ;  
+                    } 
+                     else {
+                        orderByField = Order_By;  
+                    }
+                    if (orderByField && Sort_By) {
+                        sortObject[orderByField] = Sort_By.toLowerCase() === 'asc' ? 1 : -1;
+                    }
+                
+                    return sortObject;
+                };
+        
+        
+                let result;
+                if (user_id) {
+                    const user = await User.findById(user_id);
+                    if (!user) {
+                        return res.status(404).json({ message: 'User not found' });
+                    }
+        
+                    result = await UserProject.aggregate([
+                        {
+                            $match: { user_id: user._id }
+                        },
+                        {
+                            $lookup: {
+                                from: "projects",
+                                localField: "project_id",
+                                foreignField: "_id",
+                                as: "projectDetails"
+                            }
+                        },
+                        { $unwind: "$projectDetails" },
+                        { $sort: constructSort(Order_By, Sort_By) },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "user_id",
+                                foreignField: "_id",
+                                as: "userDetails"
+                            }
+                        },
+                        { $unwind: "$userDetails" },
+                        {
+                            $project: {
+                                _id: 0,
+                                "projectDetails._id": 1,
+                                "projectDetails.Project_name": 1,
+                                "projectDetails.Project_description": 1,
+                                "projectDetails.duration": 1,
+                                "projectDetails.status": 1,
+                                "userDetails._id":1,
+                                "userDetails.name": 1,
+                                "userDetails.email": 1,
+                                "userDetails.isAdmin": 1,
+                                "userDetails.isVerified": 1
+                            }
+                        }
+                    ]);
+        
+                } else if (name) {
+                    // const user = await User.findOne({name});
+                    // const project = await Project.findOne({Project_name:name});
+                    const project = await Project.findOne({ $text: { $search: name } });
+                    const user= await User.findOne({ $text: { $search: name } });
+                    console.log({143:project})
+                    const match=!user? {project_id:project._id}:{user_id:user._id}
+                    if (!user && !project) {
+                        return res.status(404).json({ message: 'Details not found' });
+                    }
+                    result = await UserProject.aggregate([
+                        {
+                            $lookup: {
+                                from: "projects",
+                                localField: "project_id",
+                                foreignField: "_id",
+                                as: "projectDetails"
+                            }
+                        },
+                        { $unwind: "$projectDetails" },
+                        { $sort: constructSort(Order_By, Sort_By) },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "user_id",
+                                foreignField: "_id",
+                                as: "userDetails"
+                            }
+                        },
+                        { $unwind: "$userDetails" },
+                        {
+                            $match: match
+                
+                        },
+                        {
+                            $project: {
+                                _id: 0,
+                                "projectDetails._id": 1,
+                                "projectDetails.Project_name": 1,
+                                "projectDetails.Project_description": 1,
+                                "projectDetails.duration": 1,
+                                "projectDetails.status": 1,
+                                "userDetails._id":1,
+                                "userDetails.name": 1,
+                                "userDetails.email": 1,
+                                "userDetails.isAdmin": 1,
+                                "userDetails.isVerified": 1
+                            }
+                        }
+                    ]);
+                }  else {
+                    result = await UserProject.aggregate([
+                        {
+                            $lookup: {
+                                from: "projects",
+                                localField: "project_id",
+                                foreignField: "_id",
+                                as: "projectDetails"
+                            }
+                        },
+                        { $unwind: "$projectDetails" },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "user_id",
+                                foreignField: "_id",
+                                as: "userDetails"
+                            }
+                        },
+                        { $unwind: "$userDetails" },
+                        { $sort: constructSort(Order_By, Sort_By) },
+                        {
+                            $project: {
+                                _id: 0,
+                                "projectDetails._id": 1,
+                                "projectDetails.Project_name": 1,
+                                "projectDetails.Project_description": 1,
+                                "projectDetails.duration": 1,
+                                "projectDetails.status": 1,
+                                "userDetails._id":1,
+                                "userDetails.name": 1,
+                                "userDetails.email": 1,
+                                "userDetails.isAdmin": 1,
+                                "userDetails.isVerified": 1
+                            }
+                        }
+                    ]);
+                }
+                const formattedResult = result.map(project => ({
+                    ProjectID: project.projectDetails._id,
+                    Project_name: project.projectDetails.Project_name,
+                    Project_description: project.projectDetails.Project_description,
+                    duration: project.projectDetails.duration,
+                    status: project.projectDetails.status,
+                    userDetails: [
+                        {
+                            userId: project.userDetails._id,
+                            name: project.userDetails.name,
+                            email: project.userDetails.email,
+                            isAdmin: project.userDetails.isAdmin,
+                            isVerified: project.userDetails.isVerified
+                        }
+                    ]
+                }));
+                
+                res.status(200).json({ message: 'Projects retrieved successfully', projects:formattedResult });
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ message: error.message });
+            }
+        };
+        
+
+        // exports.findData = async (req, res) => {
+//     try {
+//         const { user_id, name,Sort_By} = req.query;
+//         let result;
+//         if (user_id) {
+//             const user = await User.findById(user_id);
+//             if (!user) {
+//                 return res.status(404).json({ message: 'User not found' });
+//             }
+
+//             result = await UserProject.aggregate([
+//                 {
+//                     $match: { user_id: user._id }
+//                 },
+//                 {
+//                     $lookup: {
+//                         from: "projects",
+//                         localField: "project_id",
+//                         foreignField: "_id",
+//                         as: "projectDetails"
+//                     }
+//                 },
+//                 {
+//                     $sort: {
+//                         "projectDetails.Project_name": Sort_By && Sort_By.toLowerCase() === 'desc' ? -1 : 1 
+//                     }
+//                 },
+//                 { $unwind: "$projectDetails" },
+//                 {
+//                     $lookup: {
+//                         from: "users",
+//                         localField: "user_id",
+//                         foreignField: "_id",
+//                         as: "userDetails"
+//                     }
+//                 },
+//                 { $unwind: "$userDetails" },
+//                 {
+//                     $project: {
+//                         _id: 0,
+//                         "projectDetails._id": 1,
+//                         "projectDetails.Project_name": 1,
+//                         "projectDetails.Project_description": 1,
+//                         "projectDetails.duration": 1,
+//                         "projectDetails.status": 1,
+//                         "userDetails._id":1,
+//                         "userDetails.name": 1,
+//                         "userDetails.email": 1,
+//                         "userDetails.isAdmin": 1,
+//                         "userDetails.isVerified": 1
+//                     }
+//                 }
+//             ]);
+
+//         } else if (name) {
+//             // Perform full-text search in both User and Project collections
+//             const [users, projects] = await Promise.all([
+//                 User.find({ $text: { $search: name } }),  // Search in User collection
+//                 Project.find({ $text: { $search: name } }) // Search in Project collection
+//             ]);
+//             // If neither users nor projects are found, return not found
+//             if (!users.length && !projects.length) {
+//                 return res.status(404).json({ message: 'No matching details found' });
+//             }
+//             // Create a match object to search in UserProject based on found users or projects
+//             const matchCriteria = [];
+//             if (users.length) {
+//                 const userIds = users.map(user => user._id);
+//                 matchCriteria.push({ user_id: { $in: userIds } });
+//                 console.log("User IDs for matching:", userIds);
+//             }
+//             if (projects.length) {
+//                 const projectIds = projects.map(project => project._id);
+//                 matchCriteria.push({ project_id: { $in: projectIds } });
+//                 console.log("Project IDs for matching:", projectIds); 
+//             }
+//             console.log("Match Criteria:", matchCriteria);
+//             // Build the aggregation pipeline to fetch the matched projects and users
+//             result = await UserProject.aggregate([
+//                 {
+//                     $match: {
+//                         $or: matchCriteria  // Match if either user_id or project_id matches
+//                     }
+//                 },
+//                 {
+//                     $lookup: {
+//                         from: "projects",
+//                         localField: "project_id",
+//                         foreignField: "_id",
+//                         as: "projectDetails"
+//                     }
+//                 },
+//                 { $unwind: "$projectDetails" },
+//                 {
+//                     $sort: {
+//                         "projectDetails.Project_name": Sort_By && Sort_By.toLowerCase() === 'desc' ? -1 : 1 
+//                     }
+//                 },
+//                 {
+//                     $lookup: {
+//                         from: "users",
+//                         localField: "user_id",
+//                         foreignField: "_id",
+//                         as: "userDetails"
+//                     }
+//                 },
+//                 { $unwind: "$userDetails" },
+//                 {
+//                     $project: {
+//                         _id: 0,
+//                         "projectDetails._id": 1,
+//                         "projectDetails.Project_name": 1,
+//                         "projectDetails.Project_description": 1,
+//                         "projectDetails.duration": 1,
+//                         "projectDetails.status": 1,
+//                         "userDetails._id": 1,
+//                         "userDetails.name": 1,
+//                         "userDetails.email": 1,
+//                         "userDetails.isAdmin": 1,
+//                         "userDetails.isVerified": 1
+//                     }
+//                 }
+//             ]);
+
+//         } else {
+//             result = await UserProject.aggregate([
+//                 {
+//                     $lookup: {
+//                         from: "projects",
+//                         localField: "project_id",
+//                         foreignField: "_id",
+//                         as: "projectDetails"
+//                     }
+//                 },
+//                 { $unwind: "$projectDetails" },
+//                 {
+//                     $lookup: {
+//                         from: "users",
+//                         localField: "user_id",
+//                         foreignField: "_id",
+//                         as: "userDetails"
+//                     }
+//                 },
+//                 { $unwind: "$userDetails" },
+//                 { $sort: constructSort(Order_By, Sort_By) },
+//                 {
+//                     $project: {
+//                         _id: 0,
+//                         "projectDetails._id": 1,
+//                         "projectDetails.Project_name": 1,
+//                         "projectDetails.Project_description": 1,
+//                         "projectDetails.duration": 1,
+//                         "projectDetails.status": 1,
+//                         "userDetails._id":1,
+//                         "userDetails.name": 1,
+//                         "userDetails.email": 1,
+//                         "userDetails.isAdmin": 1,
+//                         "userDetails.isVerified": 1
+//                     }
+//                 }
+//             ]);
+//         }
+
+//         const formattedResult = result.map(project => ({
+//             ProjectID: project.projectDetails._id,
+//             Project_name: project.projectDetails.Project_name,
+//             Project_description: project.projectDetails.Project_description,
+//             duration: project.projectDetails.duration,
+//             status: project.projectDetails.status,
+//             userDetails: [
+//                 {
+//                     userId: project.userDetails._id,
+//                     name: project.userDetails.name,
+//                     email: project.userDetails.email,
+//                     isAdmin: project.userDetails.isAdmin,
+//                     isVerified: project.userDetails.isVerified
+//                 }
+//             ]
+//         }));
+        
+//         res.status(200).json({ message: 'Projects retrieved successfully', projects:formattedResult });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: error.message });
+//     }
+// };
