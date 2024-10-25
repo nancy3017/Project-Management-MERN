@@ -10,7 +10,7 @@ const TaskSchema=mongoose.Schema({
     },
     Status:{
         type:String,
-        enum:["pending","inprogress","done"]
+        enum:["pending","inprogress","completed"]
     },
     Priority:{
         type:String,

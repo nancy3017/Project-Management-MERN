@@ -3,13 +3,13 @@ const dotenv=require("dotenv")
 dotenv.config()
 const JWT_SECRET=process.env.JWT_SECRET 
 
-exports.generateToken = (userId, roleId) => {
+exports.generateToken = (userId,roleId,expiresIn) => {
     const payload = {
         id: userId,
         role: roleId
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign(payload, JWT_SECRET, {expiresIn});
     return token;
 };
 

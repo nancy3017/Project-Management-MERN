@@ -1,8 +1,92 @@
-const Project = require('../models/userProjectModel');
+const Project = require('../models/projectModel');
 const User = require('../models/userModel'); 
 require('dotenv').config();
 const {roles}=require('../utils/roles')
 const CreateTask=require('../models/taskModel')
+const UserProject=require('../models/userProjectModel')
+const UserTask=require('../models/userTaskModel')
+
+
+exports.getAllProjectList=async(req,res)=>{
+    try {
+        const allProjects = await Project.find();
+        if (!allProjects.length) {
+            return res.status(404).json({ message: 'No Projects found.' });
+        }
+        res.status(200).json(allProjects);
+    } catch (error) {
+        console.error('Error fetching tasks:', error);
+        return res.status(500).json({ message: 'An error occurred while fetching tasks. Please try again later.' });
+    }
+}
+
+exports.deleteProject=async(req,res)=>{
+    const {role}=req.user
+    const {id}=req.params
+    try{
+        if(role === roles.employee)
+        {
+            return res.status(403).json({ 
+                message: 'Access denied: Insufficient privileges to delete a task. Please contact an administrator for assistance.' 
+            });
+        }
+        const projectToDelete=await Project.findById(id)
+        if(!projectToDelete)
+        {
+            return res.status(404).json({ message: 'Project not found' });
+        }
+        await projectToDelete.deleteOne();
+        return res.status(200).json({ message: 'Project deleted successfully' });
+    }
+    catch (error) {
+        console.error('Error deleting task:', error);
+        return res.status(500).json({ message: 'An error occurred while deleting the task. Please try again later.' });
+    }
+    
+
+}
+
+
+exports.updateProject = async (req, res) => {
+    const { id } = req.params;  
+    const { role } = req.user;  
+    const { projectName, projectDescription, status, duration } = req.body; 
+
+    try {
+    
+        if (role === roles.employee) {
+            return res.status(403).json({
+                message: 'Access denied: Insufficient privileges to update a task. Please contact an administrator for assistance.'
+            });
+        }
+
+  
+        const project = await Project.findById(id);
+        if (!project) {
+            return res.status(404).json({ message: 'Task not found' });
+        }
+
+   
+        const validStatuses = ['pending', 'inprogress', 'completed'];
+        if (status && !validStatuses.includes(status.toLowerCase())) {
+            return res.status(400).json({ message: `Invalid Status. Allowed values are: ${validStatuses.join(', ')}` });
+        }
+
+        if (projectName) project.projectName = projectName;
+        if (projectDescription) project.projectDescription = projectDescription;
+        if (status) project.status = status;
+        if (duration) project.duration = duration;
+
+    
+        const updatedProject = await project.save();
+
+        return res.status(200).json({ message: 'Project updated successfully',updatedProject  });
+
+    } catch (error) {
+        console.error('Error updating task:', error);
+        return res.status(500).json({ message: 'An error occurred while updating the task. Please try again later.' });
+    }
+};
 
 
 //only admins and  project managers can create a new project if project is already created they cannot create it again
@@ -15,7 +99,7 @@ exports.createProject=async(req,res)=>{
         return res.status(400).json({ message: 'All fields (Project Name, Description, Duration, Status) are required.' });
     }
 
-    const validStatuses = ['active', 'inactive', 'completed', 'pending'];
+    const validStatuses = ["pending", "inprogress", "completed"];
     if (!validStatuses.includes(status.toLowerCase())) {
     return res.status(400).json({ message: `Invalid status. Status must be one of: ${validStatuses.join(', ')}.` });
     }
@@ -24,12 +108,14 @@ exports.createProject=async(req,res)=>{
         if (existingProject) {
             return res.status(400).json({ message: 'A project with this name already exists. Please choose a different name.' });
         }
-
+        console.log("User Role:", role);
+        console.log(role===roles.employee)
         if(role===roles.employee)
         {
             return res.status(400).json({ message: 'Access denied: Insufficient privileges to create a project. Please contact an administrator for assistance.' });
         }
         const newProject=await Project.create({projectName,projectDescription,duration,status})
+        console.log({newProject})
         return res.status(200).json({message:'Project created Successfully',newProject})  
      }
     catch(error)
@@ -62,7 +148,6 @@ exports.setProjectTaskAssignment = async (req, res) => {
         if (role === roles.employee || (user.role_id === roles.admin && role === roles.manager)) {
             return res.status(400).json({ message: 'Access denied: Insufficient privileges to assign or unassign projects' });
         }
-
         if (action === 'assign') {
             if (type === 1 || type === "Project") {
                 const project = await Project.findById(id);
@@ -120,7 +205,7 @@ exports.setProjectTaskAssignment = async (req, res) => {
 
 //get all user projects data with search and sorting functionality in this user cannot search there own record as well as admins record
 
-exports.getAllProjectList = async (req, res) => {
+exports.getAssignedProjects= async (req, res) => {
     try {
         const { user_id, name, Sort_By } = req.query;
         const {role}=req.user

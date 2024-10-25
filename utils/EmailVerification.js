@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-module.exports = async (email, subject, text) => {
+module.exports = async (email, subject, text,attachments) => {
     try {
         const transporter = nodemailer.createTransport({
             host: 'sandbox.smtp.mailtrap.io', 
@@ -14,7 +14,13 @@ module.exports = async (email, subject, text) => {
             from: process.env.Email_Admin,
             to: email, 
             subject: subject, 
-            html: text
+            html: text,
+            attachments: [
+                { 
+                    filename: 'users.csv',
+                    path: attachments
+                }
+            ]
         });
         console.log("Email sent successfully");
         return true

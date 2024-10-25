@@ -1,7 +1,8 @@
 require('dotenv').config();
 const {roles}=require('../utils/roles')
-const CreateTask=require('../models/taskModel')
-
+const Task=require('../models/taskModel')
+const mongoose = require('mongoose')
+const Project=require('../models/projectModel')
 
 //only admins and  project managers can create a new task if task is already created they cannot create it again
 
@@ -19,7 +20,7 @@ exports.createTask=async(req,res)=>{
         if(role===roles.employee){
             return res.status(400).json({message:'Access denied: Insufficient privileges to create a task. Please contact an administrator for assistance.'})
         }
-        const validStatuses = ['pending', 'inprogress', 'done'];
+        const validStatuses = ['pending', 'inprogress', 'completed'];
         if (!validStatuses.includes(Status)) {
             return res.status(400).json({ message: `Invalid Status. Allowed values are: ${validStatuses.join(', ')}` });
         }
@@ -27,8 +28,9 @@ exports.createTask=async(req,res)=>{
         if (!validPriorities.includes(Priority)) {
             return res.status(400).json({ message: `Invalid Priority. Allowed values are: ${validPriorities.join(', ')}` });
         }
-        if (!mongoose.Types.ObjectId.isValid(projectId)) {
-            return res.status(400).json({ message: 'Invalid Project ID' });
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: 'Invalid Project ID' });
         }
         const newTask=await Task.create({taskName,Description,Status,Priority,startDate,endDate,projectId})
         return res.status(200).json({message:'Task created Successfully',newTask}) 
@@ -72,7 +74,7 @@ exports.deleteTask = async (req, res) => {
             return res.status(404).json({ message: 'Task not found' });
         }
 
-        await taskToDelete.remove();
+        await taskToDelete.deleteOne();
         return res.status(200).json({ message: 'Task deleted successfully' });
     } catch (error) {
         console.error('Error deleting task:', error);
@@ -111,7 +113,7 @@ exports.getAllTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
     const { id } = req.params;
     const { role } = req.user;
-    const { Task_Name, Description, Status, Priority, Start_Date, End_Date, Project_id } = req.body;
+    const { taskName,Description,Status,Priority,startDate,endDate,projectId} = req.body;
 
     try {
         if (role === roles.employee) {
@@ -123,7 +125,7 @@ exports.updateTask = async (req, res) => {
         if (!task) {
             return res.status(404).json({ message: 'Task not found' });
         }
-        const validStatuses = ['pending', 'inprogress', 'done'];
+        const validStatuses = ['pending', 'inprogress', 'completed'];
         if (Status && !validStatuses.includes(Status)) {
             return res.status(400).json({ message: `Invalid Status. Allowed values are: ${validStatuses.join(', ')}` });
         }
@@ -132,16 +134,16 @@ exports.updateTask = async (req, res) => {
         if (Priority && !validPriorities.includes(Priority)) {
             return res.status(400).json({ message: `Invalid Priority. Allowed values are: ${validPriorities.join(', ')}` });
         }
-        if (Start_Date && End_Date && new Date(Start_Date) > new Date(End_Date)) {
+        if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
             return res.status(400).json({ message: 'Start Date cannot be later than End Date' });
         }
-        task.Task_Name = Task_Name || task.Task_Name;
+        task.taskName = taskName || task.taskName;
         task.Description = Description || task.Description;
         task.Status = Status || task.Status;
         task.Priority = Priority || task.Priority;
-        task.Start_Date = Start_Date || task.Start_Date;
-        task.End_Date = End_Date || task.End_Date;
-        task.Project_id = Project_id || task.Project_id;
+        task.startDate = startDate || task.startDate;
+        task.endDate = endDate || task.endDate;
+        task.projectId = projectId || task.projectId;
 
         const updatedTask = await task.save();
         return res.status(200).json({ message: 'Task updated successfully', updatedTask });

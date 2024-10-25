@@ -4,7 +4,10 @@ require('dotenv').config();
 const sendEmail=require('../utils/EmailVerification')
 const BASE_URL=process.env.BASE_URL
 const {roles}=require('../utils/roles')
-
+const csv = require('csv-parser');
+const fs = require('fs');
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const path = require('path');
 
 
 /* soft delete the user in which after deletion isDeleted filed will have date instead of null at initial only admin can delete user
@@ -60,7 +63,7 @@ exports.createUser = async (req, res) => {
     try {
         if ((currentUserRoleId === roles.admin) || (currentUserRoleId === roles.manager && newUserRoleId !== roles.admin)) {
             const newUser = await User.create({ name, email, role_id: newUserRoleId });
-            const verificationToken = generateToken(newUser._id, newUser.role_id);
+            const verificationToken = generateToken(newUser._id, newUser.role_id,'60s');
             const url = `${BASE_URL}/${newUser._id}/verify/${verificationToken}`;
             const emailSent = await sendEmail(newUser.email, 'Verify your email', `<a href="${url}">Verify your email</a>`);
 
@@ -172,3 +175,151 @@ exports.assignRoleToUser = async (req, res) => {
         return res.status(500).json({ message: 'Server error', error });
     }
 };
+
+exports.uploadCsvFile = async (req, res) => {
+    if (!req.file) {
+        console.log('No file uploaded');
+        return res.status(400).send('No file uploaded');
+    }
+
+    const results = [];
+    const filePath = path.join(__dirname, '../uploads', req.file.filename);
+    console.log('File Path:', filePath);
+
+    fs.createReadStream(filePath)
+        .pipe(csv())
+        .on('data', (data) => {
+            console.log('Row Data:', data); 
+            results.push(data);
+        })
+        .on('end', async () => {
+            console.log('CSV file reading completed');
+            console.log('Results:', results); 
+
+            const validFields = ['name', 'email', 'password'];
+            const missingFields = [];
+
+            results.forEach((row, index) => {
+                validFields.forEach((field) => {
+                    if (!row[field]) {
+                        missingFields.push({ row: index + 1, field });
+                    }
+                });
+            });
+
+            if (missingFields.length > 0) {
+                console.log('Missing Fields:', missingFields); 
+                return res.status(400).json({
+                    message: 'Missing fields in CSV file',
+                    missingFields,
+                });
+            }
+            if (results.length > 25) {
+                const excessRecords = results.length - 25;
+                const limitedResults = results.slice(0, 25);
+
+                console.log("More than 25 records, limiting to 25");
+                console.log("Limited Results:", limitedResults);
+                console.log("Excess Records:", excessRecords);
+
+                try {
+                    await User.insertMany(limitedResults);
+                    console.log("Inserted 25 records into the database");
+                    return res.status(200).json({
+                        message: '25 records from the CSV have been imported. The rest were not imported. Please modify the CSV and try again.',
+                        importedCount: limitedResults.length,
+                        excessCount: excessRecords,
+                        data: limitedResults,
+                    });
+                } catch (error) {
+                    console.error("Error inserting data into the database:", error);
+                    return res.status(500).json({ message: 'Error inserting data into database', error });
+                }
+            }
+
+            // Bulk insert into MongoDB using Mongoose
+            try {
+                await User.insertMany(results);
+                console.log('Data successfully inserted into database'); // Log successful insertion
+                res.status(200).json({
+                    message: 'CSV file uploaded and processed successfully!',
+                    data: results,
+                });
+            } catch (error) {
+                console.log('Error inserting data into database:', error); // Log error during insertion
+                res.status(500).json({
+                    message: 'Error inserting data into database',
+                    error,
+                });
+            }
+
+            // Remove the file after processing
+            try {
+                fs.unlinkSync(filePath);
+                console.log('File removed successfully:', filePath); // Log file removal success
+            } catch (error) {
+                console.log('Error removing file:', error); // Log file removal error
+            }
+        })
+        .on('error', (error) => {
+            console.log('Error processing CSV file:', error); // Log CSV processing error
+            res.status(500).send('Error processing CSV file.');
+        });
+};
+
+
+exports.getcvsFile= async (req, res) => {
+    console.log("hello")
+    try {
+        // Fetch data from MongoDB
+        const users = await User.find({});
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'No users found' });
+        }
+
+        // Set the path where the CSV file will be saved
+        const filePath = path.join(__dirname, '../uploads/users.csv');
+       console.log({filePath})
+        // Create CSV writer instance
+        const csvWriter = createCsvWriter({
+            path: filePath,
+            header: [
+                { id: 'name', title: 'Name' },
+                { id: 'email', title: 'Email' },
+                { id: 'password', title: 'Password' }, // Caution: avoid exporting passwords in real applications!
+            ],
+        });
+        const userRecords = users.map(user => ({
+            name: user.name,
+            email: user.email,
+            password: user.password
+        }));
+
+        // Write data to CSV
+        await csvWriter.writeRecords(userRecords); // Write MongoDB records to CSV file
+        console.log(userRecords)
+        console.log('CSV file created successfully');
+
+        // Send the CSV file as a response to the client
+        res.download(filePath, 'users.csv', (err) => {
+            const emailSent = sendEmail('nainsi.elitesigma@gmail.com', 'CSV File','text',filePath);
+
+            if (!emailSent) {
+                return res.status(500).json({ message: 'User created but email verification failed. Please try again.' });
+            }
+    
+            if (err) {
+                console.log('Error downloading file:', err);
+                res.status(500).send('Error downloading file');
+            }
+        });
+
+    } catch (error) {
+        console.log('Error exporting users:', error);
+        res.status(500).json({ message: 'Error exporting users', error });
+    }
+};
+
+
+

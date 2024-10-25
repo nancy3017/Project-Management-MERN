@@ -6,7 +6,7 @@ const sendEmail=require('../utils/EmailVerification')
 const BASE_URL=process.env.BASE_URL
 const { verifyToken } = require('../utils/jwt_utils'); 
 
-exports.register = async (req, res) => {
+exports.registerUser = async (req, res) => {
     const { name, email, password} = req.body;
     if (!name || !email || !password) {
         return res.status(400).json({ message: 'Please provide all fields' });
@@ -27,7 +27,7 @@ exports.register = async (req, res) => {
             return res.status(500).json({ message: 'Error creating user' });
         }
         
-        const verificationToken = generateToken(newUser._id, newUser.role_id);
+        const verificationToken = generateToken(newUser._id, newUser.role_id,'60s');
             const url = `${BASE_URL}/${newUser._id}/verify/${verificationToken}`;
             const emailSent = await sendEmail(newUser.email, 'Verify your email', `<a href="${url}">Verify your email</a>`);
 
@@ -62,7 +62,7 @@ exports.login = async (req, res) => {
                 }
                 return res.status(200).json({ message: 'Success: An email has been sent to set your new password.' }); 
             } else {
-                const verificationToken = generateToken(user._id, user.role_id);
+                const verificationToken = generateToken(user._id, user.role_id,'60s');
                 const url = `${BASE_URL}/${user._id}/verify/${verificationToken}`;
                 const emailSent = await sendEmail(user.email, 'Verify Your Email', url);
                 
@@ -79,7 +79,7 @@ exports.login = async (req, res) => {
         if (!isPasswordValid) {
             return res.status(400).json({ message: 'Error: Invalid credentials. Incorrect password.' });
         }
-        const token = generateToken(user._id, user.role_id);
+        const token = generateToken(user._id, user.role_id,'30d');
         user.token = token;
         await user.save();
 
@@ -141,7 +141,7 @@ const setRandomPassword = async (user, password) => {
 
         await user.save();
 
-        const verificationToken = generateToken(user._id, user.role_id);
+        const verificationToken = generateToken(user._id, user.role_id,'60s');
         const url = `${BASE_URL}/${user._id}/verify/${verificationToken}`;
 
         const emailContent = `
@@ -196,7 +196,7 @@ exports.createUserverifyEmail = async (req, res) => {
 
     } catch (error) {
         console.error('Error during email verification:', error);
-
+        console.log(error.name === 'TokenExpiredError')
         if (error.name === 'TokenExpiredError') {
             return res.status(400).json({ message: 'Error: Token has expired. Please Login Again' });
 
@@ -215,7 +215,7 @@ exports.forgotPassword = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User with this email does not exist.' });
         }
-        const verificationToken=generateToken(user._id, user.role_id)
+        const verificationToken=generateToken(user._id, user.role_id,'60s')
         const url = `${BASE_URL}/${user._id}/verify/${verificationToken}`;
         const emailSent = await sendEmail(newUser.email, 'Verify your email', `<a href="${url}">Verify your email</a>`);
 
